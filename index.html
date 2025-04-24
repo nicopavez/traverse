@@ -64,6 +64,8 @@
     let markers = [];
 
     const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSJj82PsnmrsczZtnV5d_ZdrIQTtnXMnkYIjpuamZU1YA43njcb5_0EkRxdugPQcjdTmky92K4MI6dX/pub?output=csv';
+    
+      fetch(csvUrl)
 
     fetch(csvUrl)
       .then(res => res.text())
