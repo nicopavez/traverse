@@ -77,14 +77,19 @@
     // Replace with your actual Sheet2API endpoint
     const apiEndpoint = 'https://sheet2api.com/v1/qrAhWAcxQIrO/job-listing-api';
 
-    fetch(apiEndpoint)
-      .then(response => response.json())
-      .then(data => {
-        allJobs = data;
-        populateFilters();
-        renderJobs(allJobs);
-        renderPins(allJobs);
-      });
+    fetch('https://docs.google.com/spreadsheets/d/https://docs.google.com/spreadsheets/d/e/2PACX-1vSJj82PsnmrsczZtnV5d_ZdrIQTtnXMnkYIjpuamZU1YA43njcb5_0EkRxdugPQcjdTmky92K4MI6dX/pubhtml/export?format=csv')
+  .then(res => res.text())
+  .then(text => {
+    const rows = text.trim().split('\n').slice(1); // skip header
+    allJobs = rows.map(row => {
+      const [Industry, Position, Company, Country, State, City, Latitude, Longitude, Title, URL] = row.split(',');
+      return { Industry, Position, Company, Country, State, City, Latitude, Longitude, Title, URL };
+    });
+    populateFilters();
+    renderJobs(allJobs);
+    renderPins(allJobs);
+  });
+
 
     function populateFilters() {
       const industries = new Set();
