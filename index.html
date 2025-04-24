@@ -9,7 +9,7 @@
     body {
       margin: 0;
       font-family: sans-serif;
-      background: #fdfaf6; /* Cream white background */
+      background: #fdfaf6;
       display: grid;
       grid-template-columns: 1fr 1fr;
       height: 100vh;
@@ -39,32 +39,21 @@
 <body>
   <div id="list">
     <div class="filters">
-      <select id="industryFilter">
-        <option value="">All Industries</option>
-      </select>
-      <select id="positionFilter">
-        <option value="">All Positions</option>
-      </select>
-      <select id="companyFilter">
-        <option value="">All Companies</option>
-      </select>
-      <select id="countryFilter">
-        <option value="">All Countries</option>
-      </select>
-      <select id="stateFilter">
-        <option value="">All States</option>
-      </select>
-      <select id="cityFilter">
-        <option value="">All Cities</option>
-      </select>
+      <select id="industryFilter"><option value="">All Industries</option></select>
+      <select id="positionFilter"><option value="">All Positions</option></select>
+      <select id="companyFilter"><option value="">All Companies</option></select>
+      <select id="countryFilter"><option value="">All Countries</option></select>
+      <select id="stateFilter"><option value="">All States</option></select>
+      <select id="cityFilter"><option value="">All Cities</option></select>
     </div>
     <div id="jobs"></div>
   </div>
   <div id="map"></div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script>
-    const map = L.map('map').setView([37.7749, -122.4194], 12);
+    const map = L.map('map').setView([37.7749, -122.4194], 2);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
@@ -74,69 +63,83 @@
     let allJobs = [];
     let markers = [];
 
-    // Replace with your actual Sheet2API endpoint
-    const apiEndpoint = 'https://sheet2api.com/v1/qrAhWAcxQIrO/job-listing-api';
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSJj82PsnmrsczZtnV5d_ZdrIQTtnXMnkYIjpuamZU1YA43njcb5_0EkRxdugPQcjdTmky92K4MI6dX/pub?output=csv';
 
-fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vSJj82PsnmrsczZtnV5d_ZdrIQTtnXMnkYIjpuamZU1YA43njcb5_0EkRxdugPQcjdTmky92K4MI6dX/pub?output=csv')
-  .then(res => res.text())
-  .then(text => {
-    const rows = text.trim().split('\n').slice(1); // skip header
-    allJobs = rows.map(row => {
-      const [Industry, Position, Company, Country, State, City, Latitude, Longitude, Title, URL] = row.split(',');
-      return { Industry, Position, Company, Country, State, City, Latitude, Longitude, Title, URL };
-    });
-    populateFilters();
-    renderJobs(allJobs);
-    renderPins(allJobs);
-  });
-
+    fetch(csvUrl)
+      .then(res => res.text())
+      .then(csv => {
+        const parsed = Papa.parse(csv, { header: true });
+        allJobs = parsed.data.filter(row => row.Latitude && row.Longitude);
+        populateFilters();
+        renderJobs(allJobs);
+        renderPins(allJobs);
+      });
 
     function populateFilters() {
-      const industries = new Set();
-      const positions = new Set();
-      const companies = new Set();
-      const countries = new Set();
-      const states = new Set();
-      const cities = new Set();
+      const filters = {
+        industryFilter: new Set(),
+        positionFilter: new Set(),
+        companyFilter: new Set(),
+        countryFilter: new Set(),
+        stateFilter: new Set(),
+        cityFilter: new Set()
+      };
 
       allJobs.forEach(job => {
-        industries.add(job.Industry);
-        positions.add(job.Position);
-        companies.add(job.Company);
-        countries.add(job.Country);
-        states.add(job.State);
-        cities.add(job.City);
+        filters.industryFilter.add(job.Industry);
+        filters.positionFilter.add(job.Position);
+        filters.companyFilter.add(job.Company);
+        filters.countryFilter.add(job.Country);
+        filters.stateFilter.add(job.State);
+        filters.cityFilter.add(job.City);
       });
 
-      populateSelect('industryFilter', industries);
-      populateSelect('positionFilter', positions);
-      populateSelect('companyFilter', companies);
-      populateSelect('countryFilter', countries);
-      populateSelect('stateFilter', states);
-      populateSelect('cityFilter', cities);
+      for (let id in filters) {
+        const select = document.getElementById(id);
+        [...filters[id]].sort().forEach(item => {
+          const option = document.createElement('option');
+          option.value = item;
+          option.text = item;
+          select.appendChild(option);
+        });
+        select.addEventListener('change', applyFilters);
+      }
     }
 
-    function populateSelect(id, items) {
-      const select = document.getElementById(id);
-      items.forEach(item => {
-        const option = document.createElement('option');
-        option.value = item;
-        option.text = item;
-        select.add(option);
+    function applyFilters() {
+      const filters = {
+        industryFilter: document.getElementById('industryFilter').value,
+        positionFilter: document.getElementById('positionFilter').value,
+        companyFilter: document.getElementById('companyFilter').value,
+        countryFilter: document.getElementById('countryFilter').value,
+        stateFilter: document.getElementById('stateFilter').value,
+        cityFilter: document.getElementById('cityFilter').value
+      };
+
+      const filtered = allJobs.filter(job => {
+        return (!filters.industryFilter || job.Industry === filters.industryFilter)
+            && (!filters.positionFilter || job.Position === filters.positionFilter)
+            && (!filters.companyFilter || job.Company === filters.companyFilter)
+            && (!filters.countryFilter || job.Country === filters.countryFilter)
+            && (!filters.stateFilter || job.State === filters.stateFilter)
+            && (!filters.cityFilter || job.City === filters.cityFilter);
       });
+
+      renderJobs(filtered);
+      renderPins(filtered);
     }
 
     function renderJobs(jobs) {
-      const jobContainer = document.getElementById("jobs");
-      jobContainer.innerHTML = "";
+      const container = document.getElementById('jobs');
+      container.innerHTML = '';
       jobs.forEach(job => {
-        const div = document.createElement("div");
-        div.className = "job";
+        const div = document.createElement('div');
+        div.className = 'job';
         div.innerHTML = `
           <h3>${job.Title}</h3>
           <p><strong>${job.Company}</strong><br>${job.City}, ${job.State}, ${job.Country} - <a href="${job.URL}" target="_blank">Apply</a></p>
         `;
-        jobContainer.appendChild(div);
+        container.appendChild(div);
       });
     }
 
@@ -144,5 +147,15 @@ fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vSJj82PsnmrsczZtnV5d_ZdrI
       markers.forEach(marker => map.removeLayer(marker));
       markers = [];
       jobs.forEach(job => {
-        const marker = L.marker([parseFloat(job.Latitude), parseFloat(job.Longitude)]).addTo(map);
-        marker
+        const lat = parseFloat(job.Latitude);
+        const lon = parseFloat(job.Longitude);
+        if (!isNaN(lat) && !isNaN(lon)) {
+          const marker = L.marker([lat, lon]).addTo(map);
+          marker.bindPopup(`<strong>${job.Title}</strong><br>${job.Company}<br>${job.City}, ${job.State}, ${job.Country}`);
+          markers.push(marker);
+        }
+      });
+    }
+  </script>
+</body>
+</html>
