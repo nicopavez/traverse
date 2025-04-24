@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Job Finder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #fdfaf6; /* Cream white background */
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      height: 100vh;
+    }
+    #map { height: 100%; }
+    #list {
+      overflow-y: scroll;
+      padding: 20px;
+      border-right: 1px solid #ddd;
+    }
+    .job {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .job h3 {
+      margin: 0 0 5px;
+    }
+    .filters {
+      margin-bottom: 20px;
+    }
+    select {
+      margin-right: 10px;
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div id="list">
+    <div class="filters">
+      <select id="industryFilter">
+        <option value="">All Industries</option>
+      </select>
+      <select id="positionFilter">
+        <option value="">All Positions</option>
+      </select>
+      <select id="companyFilter">
+        <option value="">All Companies</option>
+      </select>
+      <select id="countryFilter">
+        <option value="">All Countries</option>
+      </select>
+      <select id="stateFilter">
+        <option value="">All States</option>
+      </select>
+      <select id="cityFilter">
+        <option value="">All Cities</option>
+      </select>
+    </div>
+    <div id="jobs"></div>
+  </div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const map = L.map('map').setView([37.7749, -122.4194], 12);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    let allJobs = [];
+    let markers = [];
+
+    // Replace with your actual Sheet2API endpoint
+    const apiEndpoint = 'YOUR_SHEET2API_ENDPOINT_HERE';
+
+    fetch(apiEndpoint)
+      .then(response => response.json())
+      .then(data => {
+        allJobs = data;
+        populateFilters();
+        renderJobs(allJobs);
+        renderPins(allJobs);
+      });
+
+    function populateFilters() {
+      const industries = new Set();
+      const positions = new Set();
+      const companies = new Set();
+      const countries = new Set();
+      const states = new Set();
+      const cities = new Set();
+
+      allJobs.forEach(job => {
+        industries.add(job.Industry);
+        positions.add(job.Position);
+        companies.add(job.Company);
+        countries.add(job.Country);
+        states.add(job.State);
+        cities.add(job.City);
+      });
+
+      populateSelect('industryFilter', industries);
+      populateSelect('positionFilter', positions);
+      populateSelect('companyFilter', companies);
+      populateSelect('countryFilter', countries);
+      populateSelect('stateFilter', states);
+      populateSelect('cityFilter', cities);
+    }
+
+    function populateSelect(id, items) {
+      const select = document.getElementById(id);
+      items.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item;
+        option.text = item;
+        select.add(option);
+      });
+    }
+
+    function renderJobs(jobs) {
+      const jobContainer = document.getElementById("jobs");
+      jobContainer.innerHTML = "";
+      jobs.forEach(job => {
+        const div = document.createElement("div");
+        div.className = "job";
+        div.innerHTML = `
+          <h3>${job.Title}</h3>
+          <p><strong>${job.Company}</strong><br>${job.City}, ${job.State}, ${job.Country} - <a href="${job.URL}" target="_blank">Apply</a></p>
+        `;
+        jobContainer.appendChild(div);
+      });
+    }
+
+    function renderPins(jobs) {
+      markers.forEach(marker => map.removeLayer(marker));
+      markers = [];
+      jobs.forEach(job => {
+        const marker = L.marker([parseFloat(job.Latitude), parseFloat(job.Longitude)]).addTo(map);
+        marker
