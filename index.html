@@ -77,7 +77,7 @@
     // Replace with your actual Sheet2API endpoint
     const apiEndpoint = 'https://sheet2api.com/v1/qrAhWAcxQIrO/job-listing-api';
 
-    fetch('https://docs.google.com/spreadsheets/d/https://docs.google.com/spreadsheets/d/e/2PACX-1vSJj82PsnmrsczZtnV5d_ZdrIQTtnXMnkYIjpuamZU1YA43njcb5_0EkRxdugPQcjdTmky92K4MI6dX/pubhtml/export?format=csv')
+fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vSJj82PsnmrsczZtnV5d_ZdrIQTtnXMnkYIjpuamZU1YA43njcb5_0EkRxdugPQcjdTmky92K4MI6dX/pub?output=csv')
   .then(res => res.text())
   .then(text => {
     const rows = text.trim().split('\n').slice(1); // skip header
